@@ -11,6 +11,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useSpring, useTransform, useInView, useMotionValue } from 'motion/react';
 import { 
+  Sun,
+  Moon,
   User, 
   Dumbbell, 
   Users, 
@@ -78,7 +80,7 @@ const ParticleBackground = () => {
   );
 };
 
-const TiltCard = ({ children, className }: { children: React.ReactNode; className?: string }) => {
+const TiltCard = ({ children, className }: { children: React.ReactNode; className?: string; key?: React.Key }) => {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const mouseXSpring = useSpring(x);
@@ -118,7 +120,7 @@ const TiltCard = ({ children, className }: { children: React.ReactNode; classNam
   );
 };
 
-const IntroLoader = ({ onComplete }: { onComplete: () => void }) => {
+const IntroLoader = ({ onComplete }: { onComplete: () => void; key?: React.Key }) => {
   return (
     <motion.div
       initial={{ opacity: 1 }}
@@ -183,37 +185,60 @@ const Section = ({ id, className, children }: SectionProps) => {
   );
 };
 
-const Navbar = () => {
+const Navbar = ({ isDarkMode, toggleTheme }: { isDarkMode: boolean, toggleTheme: () => void }) => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      const currentScrollY = window.scrollY;
+      
+      // Glass effect trigger
+      setIsScrolled(currentScrollY > 50);
+
+      // Visibility calculation
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false); // Scrolling down
+      } else {
+        setIsVisible(true); // Scrolling up
+      }
+      
+      setLastScrollY(currentScrollY);
     };
-    window.addEventListener('scroll', handleScroll);
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [lastScrollY]);
 
   const navLinks = [
     { name: 'About', href: '#about' },
+    { name: 'Certificates', href: '#certificates' },
     { name: 'Philosophy', href: '#philosophy' },
     { name: 'Skills', href: '#skills' },
     { name: 'Activities', href: '#activities' },
-    { name: 'Gallery', href: '#gallery' },
     { name: 'Contact', href: '#contact' },
   ];
 
   return (
-    <nav className={cn(
-      "fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 py-4",
-      isScrolled ? "bg-zinc-950/80 backdrop-blur-md border-bottom border-white/5" : "bg-transparent"
-    )}>
+    <motion.nav 
+      initial={{ y: 0 }}
+      animate={{ y: isVisible ? 0 : -100 }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 px-6 py-4",
+        isScrolled 
+          ? (isDarkMode ? "bg-zinc-950/80 border-b border-white/5 shadow-2xl" : "bg-white/80 border-b border-zinc-200 shadow-xl shadow-zinc-200/50") 
+          : "bg-transparent",
+        "backdrop-blur-md"
+      )}
+    >
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-2xl font-heading font-bold tracking-tighter"
+          className={cn("text-2xl font-heading font-bold tracking-tighter", isDarkMode ? "text-white" : "text-zinc-900")}
         >
           MAHMOUD<span className="text-emerald-500">.</span>
         </motion.div>
@@ -224,27 +249,80 @@ const Navbar = () => {
             <motion.a
               key={link.name}
               href={link.href}
-              whileHover={{ scale: 1.05 }}
-              className="text-sm font-medium text-zinc-400 hover:text-emerald-400 transition-colors"
+              initial="initial"
+              whileHover="hover"
+              animate="initial"
+              variants={{
+                initial: { y: 0 },
+                hover: { y: -2, transition: { type: "spring", stiffness: 400, damping: 10 } }
+              }}
+              className={cn(
+                "relative text-sm font-medium transition-colors",
+                isDarkMode ? "text-zinc-400 hover:text-emerald-400" : "text-zinc-500 hover:text-emerald-600"
+              )}
             >
               {link.name}
+              <motion.span 
+                variants={{
+                  initial: { scaleX: 0 },
+                  hover: { scaleX: 1 }
+                }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                style={{ originX: 0 }}
+                className="absolute -bottom-1 left-0 right-0 h-0.5 bg-emerald-500 rounded-full"
+              />
             </motion.a>
           ))}
-          <a 
+          
+          <button
+            onClick={toggleTheme}
+            className={cn(
+              "p-2 rounded-full transition-all duration-300",
+              isDarkMode ? "bg-zinc-900 text-yellow-400 hover:bg-zinc-800" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+            )}
+          >
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
+          <motion.a 
             href="#contact"
-            className="px-5 py-2 rounded-full bg-emerald-500 text-zinc-950 font-semibold text-sm hover:bg-emerald-400 transition-colors"
+            animate={{ 
+              boxShadow: [
+                "0 0 0px rgba(16, 185, 129, 0)", 
+                "0 0 15px rgba(16, 185, 129, 0.4)", 
+                "0 0 0px rgba(16, 185, 129, 0)"
+              ] 
+            }}
+            transition={{ 
+              duration: 2, 
+              repeat: Infinity, 
+              ease: "easeInOut" 
+            }}
+            className="px-6 py-2.5 rounded-full bg-emerald-500 text-zinc-950 font-bold text-sm hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20"
           >
             Work with me
-          </a>
+          </motion.a>
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <button 
-          className="md:hidden text-zinc-100"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {/* Mobile Actions */}
+        <div className="flex items-center gap-4 md:hidden">
+          <button
+            onClick={toggleTheme}
+            className={cn(
+              "p-2 rounded-full transition-all",
+              isDarkMode ? "text-yellow-400" : "text-zinc-600"
+            )}
+          >
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          
+          <button 
+            className={isDarkMode ? "text-zinc-100" : "text-zinc-900"}
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
@@ -254,13 +332,19 @@ const Navbar = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 right-0 bg-zinc-900 border-b border-white/5 p-6 md:hidden flex flex-col space-y-4"
+            className={cn(
+              "absolute top-full left-0 right-0 p-6 md:hidden flex flex-col space-y-4 border-b",
+              isDarkMode ? "bg-zinc-900 border-white/5" : "bg-white border-zinc-200"
+            )}
           >
             {navLinks.map((link) => (
               <a
                 key={link.name}
                 href={link.href}
-                className="text-lg font-medium text-zinc-300"
+                className={cn(
+                  "text-lg font-medium",
+                  isDarkMode ? "text-zinc-300" : "text-zinc-700"
+                )}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 {link.name}
@@ -276,11 +360,11 @@ const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </nav>
+    </motion.nav>
   );
 };
 
-const Hero = () => {
+const Hero = ({ isDarkMode }: { isDarkMode: boolean }) => {
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
 
@@ -291,11 +375,14 @@ const Hero = () => {
         style={{ y: y1 }}
         className="absolute inset-0 z-0"
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/50 to-zinc-950 z-10" />
+        <div className={cn(
+          "absolute inset-0 z-10",
+          isDarkMode ? "bg-gradient-to-b from-transparent via-zinc-950/50 to-zinc-950" : "bg-gradient-to-b from-transparent via-zinc-50/50 to-white"
+        )} />
         <img 
           src="https://images.unsplash.com/photo-1541252260730-0412e8e2108e?auto=format&fit=crop&q=80&w=2000" 
           alt="Hero Background"
-          className="w-full h-full object-cover opacity-20"
+          className={cn("w-full h-full object-cover", isDarkMode ? "opacity-20" : "opacity-40")}
           referrerPolicy="no-referrer"
         />
       </motion.div>
@@ -307,18 +394,18 @@ const Hero = () => {
           transition={{ duration: 1, ease: "easeOut" }}
           className="text-left"
         >
-          <span className="inline-block py-1 px-3 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase tracking-widest border border-emerald-500/20 mb-6">
+          <span className="inline-block py-1 px-3 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase tracking-widest border border-emerald-500/20 mb-6 font-mono">
             Building the Athletes of Tomorrow
           </span>
-          <h1 className="text-6xl md:text-8xl font-heading font-bold leading-none tracking-tighter mb-6">
+          <h1 className={cn("text-6xl md:text-8xl font-heading font-bold leading-none tracking-tighter mb-6", isDarkMode ? "text-white" : "text-zinc-900")}>
             MAHMOUD<br />
             <span className="text-gradient">MOAMEN</span>
           </h1>
-          <p className="text-xl md:text-2xl text-zinc-400 font-light max-w-2xl mb-10">
+          <p className={cn("text-xl md:text-2xl font-light max-w-2xl mb-10", isDarkMode ? "text-zinc-400" : "text-zinc-600")}>
             Professional Physical Education Teacher dedicated to building 
-            <span className="text-zinc-100 font-medium italic"> discipline</span>, 
-            <span className="text-zinc-100 font-medium italic"> health</span>, and 
-            <span className="text-zinc-100 font-medium italic"> confidence</span> through movement.
+            <span className={cn("font-medium italic", isDarkMode ? "text-zinc-100" : "text-zinc-900")}> discipline</span>, 
+            <span className={cn("font-medium italic", isDarkMode ? "text-zinc-100" : "text-zinc-900")}> health</span>, and 
+            <span className={cn("font-medium italic", isDarkMode ? "text-zinc-100" : "text-zinc-900")}> confidence</span> through movement.
           </p>
 
           <motion.div
@@ -335,7 +422,10 @@ const Hero = () => {
             </a>
             <button 
               onClick={() => window.print()}
-              className="px-8 py-4 bg-zinc-900 text-white border border-white/10 rounded-full font-bold hover:bg-zinc-800 transition-all flex items-center gap-2"
+              className={cn(
+                "px-8 py-4 border rounded-full font-bold transition-all flex items-center gap-2",
+                isDarkMode ? "bg-zinc-900 text-white border-white/10 hover:bg-zinc-800" : "bg-white text-zinc-900 border-zinc-200 hover:bg-zinc-100"
+              )}
             >
               Download CV <ExternalLink size={18} />
             </button>
@@ -356,13 +446,18 @@ const Hero = () => {
               <motion.div
                 animate={{ y: [0, -20, 0] }}
                 transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                className="relative z-10 rounded-[30px] overflow-hidden border border-white/10 shadow-2xl glass p-2 shadow-emerald-500/10"
+                className={cn(
+                  "relative z-10 rounded-[30px] overflow-hidden border shadow-2xl p-2",
+                  isDarkMode ? "bg-black/40 backdrop-blur-md border-white/10 shadow-emerald-500/10" : "bg-white/40 backdrop-blur-md border-zinc-200 shadow-emerald-500/5"
+                )}
               >
                 <img 
-                  src="https://artifact.mural.co/edge/api/v1/assets/95834898-765f-409b-9860-96f7c975191b/artifact" 
+                  src={`${import.meta.env.BASE_URL}profile.png`} 
                   alt="Mahmoud Moamen"
                   className="w-full aspect-[3/4] object-cover rounded-[22px]"
-                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.src = "https://artifact.mural.co/edge/api/v1/assets/95834898-765f-409b-9860-96f7c975191b/artifact";
+                  }}
                 />
                 
                 {/* 3D Reflection Effect Overlay */}
@@ -385,42 +480,27 @@ const Hero = () => {
   );
 };
 
-const About = () => {
-  return (
-    <Section id="about" className="bg-zinc-950">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-        <div className="relative">
-          <div className="absolute -top-10 -left-10 w-40 h-40 bg-emerald-500/10 blur-3xl rounded-full" />
-          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-500/10 blur-3xl rounded-full" />
-          <motion.div 
-            whileHover={{ scale: 1.02 }}
-            className="relative z-10 rounded-3xl overflow-hidden border border-white/10 aspect-[4/5]"
-          >
-            <img 
-              src="https://artifact.mural.co/edge/api/v1/assets/95834898-765f-409b-9860-96f7c975191b/artifact" 
-              alt="Mahmoud Moamen"
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-          </motion.div>
-          <div className="absolute -bottom-6 -right-6 glass p-6 rounded-2xl z-20 hidden md:block">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center">
-                <Award className="text-zinc-900" size={24} />
-              </div>
-              <div>
-                <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Education</p>
-                <p className="text-sm font-semibold">Bachelor of PE, Al-Azhar</p>
-              </div>
-            </div>
-          </div>
-        </div>
+const About = ({ isDarkMode }: { isDarkMode: boolean }) => {
+  const stats = [
+    { label: "Years Experience", value: "3+", icon: <Calendar className="text-emerald-500" size={20} /> },
+    { label: "Students", value: "200+", icon: <Users className="text-blue-500" size={20} /> },
+    { label: "Ages", value: "6–14", icon: <Target className="text-purple-500" size={20} /> },
+  ];
 
-        <div>
-          <h2 className="text-4xl md:text-5xl font-heading font-bold mb-6">
+  return (
+    <Section id="about" className={isDarkMode ? "bg-zinc-950" : "bg-white"}>
+      <div className="max-w-4xl mx-auto text-center">
+        <motion.div
+           initial={{ opacity: 0, y: 20 }}
+           whileInView={{ opacity: 1, y: 0 }}
+           viewport={{ once: true }}
+        >
+          <span className="text-emerald-500 font-bold tracking-widest uppercase text-xs mb-4 block">About Me</span>
+          <h2 className={cn("text-4xl md:text-5xl font-heading font-bold mb-8", isDarkMode ? "text-white" : "text-zinc-900")}>
             Driving <span className="text-emerald-500">Excellence</span> Through Physical Literacy
           </h2>
-          <div className="space-y-6 text-zinc-400 text-lg leading-relaxed">
+          
+          <div className={cn("space-y-6 text-lg leading-relaxed mb-12", isDarkMode ? "text-zinc-400" : "text-zinc-600")}>
             <p>
               I am a dedicated Physical Education teacher with experience delivering engaging PE programs in private school settings. Skilled in creating inclusive lesson plans, promoting physical literacy, and organizing school-wide sports events.
             </p>
@@ -429,51 +509,266 @@ const About = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10">
-            <div className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <GraduationCap className="text-emerald-500" size={20} />
+          <div className="flex justify-center mb-16">
+            <div className={cn(
+              "p-6 rounded-[32px] border flex items-start gap-6 text-left backdrop-blur-md max-w-xs w-full shadow-2xl transition-all",
+              isDarkMode ? "bg-zinc-900/50 border-white/5 shadow-emerald-500/5" : "bg-zinc-100/50 border-zinc-200 shadow-emerald-500/10"
+            )}>
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <GraduationCap className="text-emerald-500" size={28} />
               </div>
               <div>
-                <h4 className="font-bold text-sm">Bachelor of PE</h4>
-                <p className="text-xs text-zinc-500">Al-Azhar University, 2023</p>
-              </div>
-            </div>
-            <div className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="text-blue-500" size={20} />
-              </div>
-              <div>
-                <h4 className="font-bold text-sm">First Aid & CPR</h4>
-                <p className="text-xs text-zinc-500">Certified, 2026</p>
-              </div>
-            </div>
-            <div className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
-                <Award className="text-purple-500" size={20} />
-              </div>
-              <div>
-                <h4 className="font-bold text-sm">Sports Coaching</h4>
-                <p className="text-xs text-zinc-500">Int. Olympic Committee, 2025</p>
-              </div>
-            </div>
-            <div className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                <Target className="text-orange-500" size={20} />
-              </div>
-              <div>
-                <h4 className="font-bold text-sm">English for Career</h4>
-                <p className="text-xs text-zinc-500">UPenn, 2024</p>
+                <h4 className={cn("font-bold text-lg", isDarkMode ? "text-white" : "text-zinc-900")}>Bachelor of PE</h4>
+                <p className="text-sm text-zinc-500">Al-Azhar University, 2023</p>
+                <div className="mt-2 text-[10px] font-black uppercase tracking-wider text-emerald-500/50">Primary Qualification</div>
               </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {stats.map((stat, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className={cn(
+                  "p-8 rounded-[32px] border flex flex-col items-center gap-4 transition-colors group",
+                  isDarkMode ? "bg-zinc-900/30 border-white/5 hover:border-emerald-500/20" : "bg-zinc-100 border-zinc-200 hover:border-emerald-500/20"
+                )}
+              >
+                <div className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform",
+                  isDarkMode ? "bg-white/5" : "bg-zinc-50 border border-zinc-200"
+                )}>
+                  {stat.icon}
+                </div>
+                <div>
+                  <div className={cn("text-3xl font-heading font-bold mb-1", isDarkMode ? "text-white" : "text-zinc-900")}>{stat.value}</div>
+                  <div className="text-xs text-zinc-500 font-bold uppercase tracking-widest">{stat.label}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </Section>
+  );
+};
+
+
+const Certificates = ({ isDarkMode }: { isDarkMode: boolean }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const certs = [
+    { 
+      title: "Sports Coaching", 
+      issuer: "Int. Olympic Committee", 
+      year: "2025", 
+      img: "cert1.png",
+      fallback: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800"
+    },
+    { 
+      title: "English for Career Development", 
+      issuer: "University of Pennsylvania", 
+      year: "2024", 
+      img: "cert2.png",
+      fallback: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800"
+    },
+    { 
+      title: "Basic Online First Aid Course", 
+      issuer: "First Aid for Free", 
+      year: "2025", 
+      img: "cert3.png",
+      fallback: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=800"
+    },
+    { 
+      title: "Claude 101 Certified", 
+      issuer: "Anthropic", 
+      year: "2026", 
+      img: "cert4.png",
+      fallback: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800"
+    },
+  ];
+
+  const total = certs.length;
+  const [radius, setRadius] = useState(400);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640) setRadius(250);
+      else if (window.innerWidth < 1024) setRadius(350);
+      else setRadius(500);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const moveNext = () => setCurrentIndex(prev => prev + 1);
+  const movePrev = () => setCurrentIndex(prev => prev - 1);
+
+  return (
+    <Section id="certificates" className={cn("overflow-hidden flex flex-col justify-center min-h-[900px]", isDarkMode ? "bg-zinc-950" : "bg-white")}>
+      <div className="max-w-7xl mx-auto w-full">
+        <div className="text-center mb-24 relative">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+          <motion.span 
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            className="text-emerald-500 font-bold tracking-widest uppercase text-xs mb-3 block"
+          >
+            Professional Credentials
+          </motion.span>
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className={cn("text-5xl md:text-7xl font-heading font-bold", isDarkMode ? "text-white" : "text-zinc-900")}
+          >
+            Expertise <span className="text-emerald-500">& Certs</span>
+          </motion.h2>
+        </div>
+
+        <div className="relative h-[600px] w-full flex items-center justify-center perspective-[2000px] touch-none">
+          {/* Main 3D Container */}
+          <motion.div
+            style={{ 
+              transformStyle: "preserve-3d",
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+            animate={{ rotateY: currentIndex * (-360 / total) }}
+            transition={{ type: "spring", stiffness: 100, damping: 25 }}
+          >
+            {certs.map((cert, i) => {
+              const rotation = (i * 360) / total;
+              const activeIndex = ((currentIndex % total) + total) % total;
+              const isActive = i === activeIndex;
+
+              return (
+                <div
+                  key={i}
+                  className="absolute w-[300px] sm:w-[450px] aspect-[16/11] preserve-3d"
+                  style={{ 
+                    transform: `rotateY(${rotation}deg) translateZ(${radius}px)`,
+                  }}
+                >
+                  <motion.div
+                    initial={false}
+                    animate={{ 
+                      scale: isActive ? 1.05 : 0.85,
+                      opacity: isActive ? 1 : 0.3,
+                      filter: isActive ? "blur(0px)" : "blur(2px)"
+                    }}
+                    transition={{ duration: 0.5 }}
+                    className="h-full w-full"
+                  >
+                    <div className={cn(
+                      "p-4 rounded-[32px] border shadow-2xl flex flex-col h-full group transition-colors",
+                      isDarkMode ? "bg-black/40 backdrop-blur-md border-white/10 shadow-emerald-500/10" : "bg-white/80 backdrop-blur-md border-zinc-200 shadow-emerald-500/5"
+                    )}>
+                      <div className={cn(
+                        "relative flex-1 rounded-[24px] overflow-hidden mb-6 border transition-colors",
+                        isDarkMode ? "bg-zinc-900 border-white/5" : "bg-zinc-50 border-zinc-200"
+                      )}>
+                        <img 
+                          src={`${import.meta.env.BASE_URL}${cert.img}`}
+                          alt={cert.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          onError={(e) => {
+                            e.currentTarget.src = cert.fallback;
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 p-6 flex flex-col justify-end">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-zinc-950 shadow-lg shadow-emerald-500/20">
+                              <ExternalLink size={18} />
+                            </div>
+                            <span className="text-white font-bold text-sm bg-zinc-900/40 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10">View Credential</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="px-2 pb-2">
+                        <div className="flex justify-between items-start gap-4 mb-2">
+                          <h3 className={cn("text-xl sm:text-2xl font-bold leading-tight group-hover:text-emerald-400 transition-colors uppercase tracking-tight", isDarkMode ? "text-white" : "text-zinc-900")}>{cert.title}</h3>
+                          <div className="bg-emerald-500 text-zinc-950 px-3 py-1 rounded-full text-[10px] font-black shrink-0 flex items-center gap-1">
+                            <Calendar size={10} />
+                            {cert.year}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-zinc-500 text-sm font-medium">
+                          <Award size={14} className="text-emerald-500" />
+                          {cert.issuer}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              );
+            })}
+          </motion.div>
+
+          {/* Navigation Controls */}
+          <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 max-w-5xl mx-auto flex justify-between px-6 pointer-events-none z-20">
+            <button 
+              onClick={movePrev}
+              className={cn(
+                "w-14 h-14 rounded-full backdrop-blur-md border flex items-center justify-center hover:bg-emerald-500 hover:text-zinc-950 transition-all pointer-events-auto shadow-2xl active:scale-90",
+                isDarkMode ? "bg-zinc-900/80 border-white/10 text-white" : "bg-white/80 border-zinc-200 text-zinc-900"
+              )}
+            >
+              <ChevronLeft size={28} />
+            </button>
+            <button 
+              onClick={moveNext}
+              className={cn(
+                "w-14 h-14 rounded-full backdrop-blur-md border flex items-center justify-center hover:bg-emerald-500 hover:text-zinc-950 transition-all pointer-events-auto shadow-2xl active:scale-90",
+                isDarkMode ? "bg-zinc-900/80 border-white/10 text-white" : "bg-white/80 border-zinc-200 text-zinc-900"
+              )}
+            >
+              <ChevronRight size={28} />
+            </button>
+          </div>
+          
+          {/* Progress Indicators */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3 z-20">
+            {certs.map((_, i) => {
+              const activeIndex = ((currentIndex % total) + total) % total;
+              return (
+                <button
+                  key={i}
+                  onClick={() => {
+                    const diff = i - activeIndex;
+                    setCurrentIndex(currentIndex + diff);
+                  }}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all duration-300",
+                    i === activeIndex ? "w-10 bg-emerald-500" : (isDarkMode ? "bg-zinc-800 hover:bg-zinc-700" : "bg-zinc-200 hover:bg-zinc-300")
+                  )}
+                />
+              );
+            })}
+          </div>
+        </div>
+        
+        <div className="text-center mt-12 opacity-30 flex flex-col items-center gap-2">
+           <div className={cn("flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em]", isDarkMode ? "text-white" : "text-zinc-900")}>
+             <ChevronLeft size={14} /> Use Arrows <ChevronRight size={14} />
+           </div>
+           <p className={cn("text-[10px]", isDarkMode ? "text-zinc-400" : "text-zinc-500")}>EXPERIENCE IN 3D SPACE</p>
         </div>
       </div>
     </Section>
   );
 };
 
-const Philosophy = () => {
+
+const Philosophy = ({ isDarkMode }: { isDarkMode: boolean }) => {
   const principles = [
     {
       icon: <Target className="text-emerald-400" size={32} />,
@@ -498,21 +793,27 @@ const Philosophy = () => {
   ];
 
   return (
-    <Section id="philosophy" className="bg-zinc-900/50">
+    <Section id="philosophy" className={isDarkMode ? "bg-zinc-900/50" : "bg-zinc-50"}>
       <div className="max-w-7xl mx-auto text-center mb-16">
-        <h2 className="text-4xl font-heading font-bold mb-4">Teaching Philosophy</h2>
-        <p className="text-zinc-500 max-w-2xl mx-auto">My core principles that guide how I interact with students and structure my programs.</p>
+        <h2 className={cn("text-4xl font-heading font-bold mb-4", isDarkMode ? "text-white" : "text-zinc-900")}>Teaching Philosophy</h2>
+        <p className={isDarkMode ? "text-zinc-500" : "text-zinc-500"}>My core principles that guide how I interact with students and structure my programs.</p>
       </div>
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {principles.map((item, index) => (
           <TiltCard key={index}>
-            <div className="glass p-8 rounded-3xl hover:bg-white/5 transition-colors group h-full">
-              <div className="mb-6 p-4 rounded-2xl bg-zinc-950 inline-block group-hover:scale-110 transition-transform">
+            <div className={cn(
+               "p-8 rounded-3xl transition-all group h-full border",
+               isDarkMode ? "bg-black/40 backdrop-blur-md border-white/5 hover:bg-white/5" : "bg-white border-zinc-200 hover:shadow-xl shadow-zinc-200/50"
+            )}>
+              <div className={cn(
+                "mb-6 p-4 rounded-2xl inline-block group-hover:scale-110 transition-transform",
+                isDarkMode ? "bg-zinc-950" : "bg-zinc-100"
+              )}>
                 {item.icon}
               </div>
-              <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-              <p className="text-zinc-500 leading-relaxed text-sm">
+              <h3 className={cn("text-xl font-bold mb-3", isDarkMode ? "text-white" : "text-zinc-900")}>{item.title}</h3>
+              <p className={cn("leading-relaxed text-sm", isDarkMode ? "text-zinc-500" : "text-zinc-600")}>
                 {item.description}
               </p>
             </div>
@@ -523,7 +824,7 @@ const Philosophy = () => {
   );
 };
 
-const Skills = () => {
+const Skills = ({ isDarkMode }: { isDarkMode: boolean }) => {
   const skills: Skill[] = [
     { name: "PE Instruction", level: 98 },
     { name: "Student Engagement", level: 100 },
@@ -534,11 +835,11 @@ const Skills = () => {
   ];
 
   return (
-    <Section id="skills" className="bg-zinc-950">
+    <Section id="skills" className={isDarkMode ? "bg-zinc-950" : "bg-white"}>
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20">
         <div>
-          <h2 className="text-4xl font-heading font-bold mb-6">Core <span className="text-emerald-500">Skills</span></h2>
-          <p className="text-zinc-400 mb-12 text-lg">
+          <h2 className={cn("text-4xl font-heading font-bold mb-6", isDarkMode ? "text-white" : "text-zinc-900")}>Core <span className="text-emerald-500">Skills</span></h2>
+          <p className={cn("mb-12 text-lg", isDarkMode ? "text-zinc-400" : "text-zinc-600")}>
             I specialize in transforming traditional PE into a dynamic, inclusive, and high-energy learning experience.
           </p>
           
@@ -547,13 +848,16 @@ const Skills = () => {
               <motion.div 
                 key={index}
                 whileHover={{ scale: 1.05 }}
-                className="p-6 rounded-2xl bg-zinc-900 border border-white/5 group"
+                className={cn(
+                   "p-6 rounded-2xl border transition-all group",
+                   isDarkMode ? "bg-zinc-900 border-white/5" : "bg-zinc-100 border-zinc-200"
+                )}
               >
                 <div className="flex justify-between items-center mb-4">
-                  <h4 className="font-bold text-sm group-hover:text-emerald-400 transition-colors">{skill.name}</h4>
+                  <h4 className={cn("font-bold text-sm transition-colors", isDarkMode ? "group-hover:text-emerald-400" : "group-hover:text-emerald-600")}>{skill.name}</h4>
                   <span className="text-xs font-bold text-emerald-500/50">{skill.level}%</span>
                 </div>
-                <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden">
+                <div className={cn("h-1.5 w-full rounded-full overflow-hidden", isDarkMode ? "bg-zinc-950" : "bg-white border border-zinc-200")}>
                   <motion.div 
                     initial={{ width: 0 }}
                     whileInView={{ width: `${skill.level}%` }}
@@ -567,41 +871,32 @@ const Skills = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="glass p-8 rounded-3xl flex flex-col justify-between">
-            <FootballIcon className="text-blue-400 mb-6" size={40} />
-            <div>
-              <h4 className="font-bold text-xl mb-2">Team Sports</h4>
-              <p className="text-zinc-500 text-sm">Football, Athletics, and Group Tactics expertise.</p>
+          {[
+            { Icon: FootballIcon, color: "text-blue-400", title: "Team Sports", desc: "Football, Athletics, and Group Tactics expertise." },
+            { Icon: Dumbbell, color: "text-emerald-400", title: "Fitness", desc: "Strength, conditioning, and HIIT instruction." },
+            { Icon: Brain, color: "text-purple-400", title: "Pedagogy", desc: "Educational English and child psychology." },
+            { Icon: Award, color: "text-emerald-400", title: "Leadership", desc: "Organizing school-wide events and leagues.", highlight: true },
+          ].map((item, idx) => (
+            <div key={idx} className={cn(
+              "p-8 rounded-3xl flex flex-col justify-between border transition-all",
+              item.highlight 
+                ? (isDarkMode ? "border-emerald-500/30 bg-emerald-500/5" : "border-emerald-500/30 bg-emerald-50")
+                : (isDarkMode ? "bg-black/40 backdrop-blur-md border-white/10" : "bg-zinc-100 border-zinc-200 shadow-sm shadow-zinc-200")
+            )}>
+              <item.Icon className={cn(item.color, "mb-6")} size={40} />
+              <div>
+                <h4 className={cn("font-bold text-xl mb-2", isDarkMode ? "text-white" : "text-zinc-900")}>{item.title}</h4>
+                <p className={isDarkMode ? "text-zinc-500 text-sm" : "text-zinc-600 text-sm"}>{item.desc}</p>
+              </div>
             </div>
-          </div>
-          <div className="glass p-8 rounded-3xl flex flex-col justify-between">
-            <Dumbbell className="text-emerald-400 mb-6" size={40} />
-            <div>
-              <h4 className="font-bold text-xl mb-2">Fitness</h4>
-              <p className="text-zinc-500 text-sm">Strength, conditioning, and HIIT instruction.</p>
-            </div>
-          </div>
-          <div className="glass p-8 rounded-3xl flex flex-col justify-between">
-            <Brain className="text-purple-400 mb-6" size={40} />
-            <div>
-              <h4 className="font-bold text-xl mb-2">Pedagogy</h4>
-              <p className="text-zinc-500 text-sm">Educational English and child psychology.</p>
-            </div>
-          </div>
-          <div className="glass p-8 rounded-3xl flex flex-col justify-between border-emerald-500/30 bg-emerald-500/5">
-            <Award className="text-emerald-400 mb-6" size={40} />
-            <div>
-              <h4 className="font-bold text-xl mb-2">Leadership</h4>
-              <p className="text-zinc-500 text-sm">Organizing school-wide events and leagues.</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </Section>
   );
 };
 
-const Activities = () => {
+const Activities = ({ isDarkMode }: { isDarkMode: boolean }) => {
   const [filter, setFilter] = useState('All');
   const activities = [
     {
@@ -621,10 +916,10 @@ const Activities = () => {
   const filtered = filter === 'All' ? activities : activities.filter(a => a.cat === filter);
 
   return (
-    <Section id="activities" className="bg-zinc-950">
+    <Section id="activities" className={isDarkMode ? "bg-zinc-950" : "bg-white"}>
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
         <div>
-          <h2 className="text-4xl font-heading font-bold mb-4">Activities & Events</h2>
+          <h2 className={cn("text-4xl font-heading font-bold mb-4", isDarkMode ? "text-white" : "text-zinc-900")}>Activities & Events</h2>
           <div className="flex flex-wrap gap-2 mt-4">
             {['All', 'Football', 'Events'].map(tag => (
               <button
@@ -632,7 +927,9 @@ const Activities = () => {
                 onClick={() => setFilter(tag)}
                 className={cn(
                   "px-4 py-2 rounded-full text-xs font-bold transition-all",
-                  filter === tag ? "bg-emerald-500 text-zinc-950" : "bg-zinc-900 text-zinc-500 hover:text-zinc-300"
+                  filter === tag 
+                    ? "bg-emerald-500 text-zinc-950" 
+                    : (isDarkMode ? "bg-zinc-900 text-zinc-500 hover:text-zinc-300" : "bg-zinc-100 text-zinc-500 hover:text-zinc-700")
                 )}
               >
                 {tag}
@@ -686,49 +983,9 @@ const Activities = () => {
   );
 };
 
-const Gallery = () => {
-  const images = [
-    "https://images.unsplash.com/photo-1526676037777-05a232554f77?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1511886929837-354d827aae26?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1517649763962-0c6234978a0b?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1518611012118-2969c636f7b4?auto=format&fit=crop&q=80&w=800",
-  ];
 
-  return (
-    <Section id="gallery" className="bg-zinc-900/50">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-heading font-bold mb-4">Capturing Moments</h2>
-          <p className="text-zinc-500">A visual diary of movement and student growth.</p>
-        </div>
 
-        <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
-          {images.map((img, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: 1.02 }}
-              className="rounded-2xl overflow-hidden border border-white/5 cursor-zoom-in"
-            >
-              <img 
-                src={img} 
-                alt={`Gallery ${index}`}
-                className="w-full h-auto grayscale hover:grayscale-0 transition-all duration-500"
-                referrerPolicy="no-referrer"
-              />
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </Section>
-  );
-};
-
-const Testimonials = () => {
+const Testimonials = ({ isDarkMode }: { isDarkMode: boolean }) => {
   const [activeTab, setActiveTab] = useState(0);
   const reviews = [
     {
@@ -749,7 +1006,7 @@ const Testimonials = () => {
   ];
 
   return (
-    <Section id="testimonials" className="bg-zinc-950 overflow-hidden relative">
+    <Section id="testimonials" className={cn("overflow-hidden relative", isDarkMode ? "bg-zinc-950" : "bg-zinc-50")}>
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 blur-[120px] rounded-full -mr-64 -mt-64" />
       
       <div className="max-w-4xl mx-auto text-center relative z-10">
@@ -764,11 +1021,11 @@ const Testimonials = () => {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <p className="text-2xl md:text-3xl font-light italic text-zinc-300 leading-relaxed">
+              <p className={cn("text-2xl md:text-3xl font-light italic leading-relaxed", isDarkMode ? "text-zinc-300" : "text-zinc-700")}>
                 "{reviews[activeTab].text}"
               </p>
               <div>
-                <p className="font-bold text-lg">{reviews[activeTab].name}</p>
+                <p className={cn("font-bold text-lg", isDarkMode ? "text-white" : "text-zinc-900")}>{reviews[activeTab].name}</p>
                 <p className="text-emerald-500 text-sm font-medium uppercase tracking-widest">{reviews[activeTab].role}</p>
               </div>
             </motion.div>
@@ -782,7 +1039,7 @@ const Testimonials = () => {
               onClick={() => setActiveTab(i)}
               className={cn(
                 "w-3 h-3 rounded-full transition-all",
-                activeTab === i ? "bg-emerald-500 w-8" : "bg-zinc-800"
+                activeTab === i ? "bg-emerald-500 w-8" : (isDarkMode ? "bg-zinc-800" : "bg-zinc-200")
               )}
             />
           ))}
@@ -792,42 +1049,51 @@ const Testimonials = () => {
   );
 };
 
-const Contact = () => {
+const Contact = ({ isDarkMode }: { isDarkMode: boolean }) => {
   return (
-    <Section id="contact" className="bg-zinc-950">
+    <Section id="contact" className={isDarkMode ? "bg-zinc-950" : "bg-white"}>
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-20">
         <div className="lg:w-1/3">
-          <h2 className="text-4xl md:text-5xl font-heading font-bold mb-8">Get In <span className="text-emerald-500">Touch</span></h2>
-          <p className="text-zinc-400 mb-12 text-lg">
+          <h2 className={cn("text-4xl md:text-5xl font-heading font-bold mb-8", isDarkMode ? "text-white" : "text-zinc-900")}>Get In <span className="text-emerald-500">Touch</span></h2>
+          <p className={cn("mb-12 text-lg", isDarkMode ? "text-zinc-400" : "text-zinc-600")}>
             Interested in collaboration, coaching, or have a question about my teaching methods? Drop me a message.
           </p>
 
           <div className="space-y-8">
             <div className="flex items-center gap-6 group">
-              <div className="w-14 h-14 rounded-2xl bg-zinc-900 flex items-center justify-center group-hover:bg-emerald-500 transition-colors">
-                <Mail className="group-hover:text-zinc-950 transition-colors" size={24} />
+              <div className={cn(
+                "w-14 h-14 rounded-2xl flex items-center justify-center group-hover:bg-emerald-500 transition-colors",
+                isDarkMode ? "bg-zinc-900" : "bg-zinc-100"
+              )}>
+                <Mail className={cn("transition-colors", isDarkMode ? "group-hover:text-zinc-950" : "group-hover:text-zinc-950")} size={24} />
               </div>
               <div>
                 <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-1">Email</p>
-                <p className="font-medium">mahmoudmoamen71@gmail.com</p>
+                <p className={cn("font-medium transition-colors", isDarkMode ? "text-white" : "text-zinc-900")}>mahmoudmoamen71@gmail.com</p>
               </div>
             </div>
             <div className="flex items-center gap-6 group">
-              <div className="w-14 h-14 rounded-2xl bg-zinc-900 flex items-center justify-center group-hover:bg-emerald-500 transition-colors">
-                <Phone className="group-hover:text-zinc-950 transition-colors" size={24} />
+              <div className={cn(
+                 "w-14 h-14 rounded-2xl flex items-center justify-center group-hover:bg-emerald-500 transition-colors",
+                 isDarkMode ? "bg-zinc-900" : "bg-zinc-100"
+              )}>
+                <Phone className={cn("transition-colors", isDarkMode ? "group-hover:text-zinc-950" : "group-hover:text-zinc-950")} size={24} />
               </div>
               <div>
                 <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-1">WhatsApp</p>
-                <p className="font-medium">+20 150 100 2947</p>
+                <p className={cn("font-medium transition-colors", isDarkMode ? "text-white" : "text-zinc-900")}>+20 150 100 2947</p>
               </div>
             </div>
             <div className="flex items-center gap-6 group">
-              <div className="w-14 h-14 rounded-2xl bg-zinc-900 flex items-center justify-center group-hover:bg-emerald-500 transition-colors">
-                <MapPin className="group-hover:text-zinc-950 transition-colors" size={24} />
+              <div className={cn(
+                "w-14 h-14 rounded-2xl flex items-center justify-center group-hover:bg-emerald-500 transition-colors",
+                isDarkMode ? "bg-zinc-900" : "bg-zinc-100"
+              )}>
+                <MapPin className={cn("transition-colors", isDarkMode ? "group-hover:text-zinc-950" : "group-hover:text-zinc-950")} size={24} />
               </div>
               <div>
                 <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-1">Location</p>
-                <p className="font-medium">Egypt</p>
+                <p className={cn("font-medium transition-colors", isDarkMode ? "text-white" : "text-zinc-900")}>Egypt</p>
               </div>
             </div>
           </div>
@@ -838,7 +1104,10 @@ const Contact = () => {
               target="_blank"
               rel="noopener noreferrer"
               href="https://www.linkedin.com/in/mahmoudmoamen/" 
-              className="px-6 py-3 rounded-2xl glass flex items-center gap-3 hover:bg-emerald-500 hover:text-zinc-950 transition-all group"
+              className={cn(
+                "px-6 py-3 rounded-2xl flex items-center gap-3 hover:bg-emerald-500 hover:text-zinc-950 transition-all group backdrop-blur-md border",
+                isDarkMode ? "bg-black/40 border-white/10" : "bg-white border-zinc-200 shadow-sm"
+              )}
             >
               <Linkedin size={20} />
               <span className="font-bold text-sm">LinkedIn</span>
@@ -848,7 +1117,10 @@ const Contact = () => {
               target="_blank"
               rel="noopener noreferrer"
               href="https://github.com/MahmoudMo2amen" 
-              className="px-6 py-3 rounded-2xl glass flex items-center gap-3 hover:bg-emerald-500 hover:text-zinc-950 transition-all group"
+              className={cn(
+                "px-6 py-3 rounded-2xl flex items-center gap-3 hover:bg-emerald-500 hover:text-zinc-950 transition-all group backdrop-blur-md border",
+                isDarkMode ? "bg-black/40 border-white/10" : "bg-white border-zinc-200 shadow-sm"
+              )}
             >
               <Github size={20} />
               <span className="font-bold text-sm">GitHub</span>
@@ -857,13 +1129,19 @@ const Contact = () => {
         </div>
 
         <div className="lg:w-2/3">
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-6 glass p-8 md:p-12 rounded-[40px]">
+          <form className={cn(
+            "grid grid-cols-1 md:grid-cols-2 gap-6 p-8 md:p-12 rounded-[40px] backdrop-blur-md border",
+            isDarkMode ? "bg-black/40 border-white/5" : "bg-zinc-50 border-zinc-200 shadow-xl shadow-zinc-200/50"
+          )}>
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 ml-1">Full Name</label>
               <input 
                 type="text" 
                 placeholder="John Doe"
-                className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 outline-none focus:border-emerald-500 transition-colors"
+                className={cn(
+                  "w-full border rounded-2xl px-6 py-4 outline-none focus:border-emerald-500 transition-colors",
+                  isDarkMode ? "bg-zinc-900/50 border-white/5" : "bg-white border-zinc-200"
+                )}
               />
             </div>
             <div className="space-y-2">
@@ -871,12 +1149,18 @@ const Contact = () => {
               <input 
                 type="email" 
                 placeholder="john@example.com"
-                className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 outline-none focus:border-emerald-500 transition-colors"
+                className={cn(
+                  "w-full border rounded-2xl px-6 py-4 outline-none focus:border-emerald-500 transition-colors",
+                  isDarkMode ? "bg-zinc-900/50 border-white/5" : "bg-white border-zinc-200"
+                )}
               />
             </div>
             <div className="space-y-2 md:col-span-2">
               <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 ml-1">Subject</label>
-              <select className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 outline-none focus:border-emerald-500 transition-colors appearance-none">
+              <select className={cn(
+                  "w-full border rounded-2xl px-6 py-4 outline-none focus:border-emerald-500 transition-colors appearance-none",
+                  isDarkMode ? "bg-zinc-900/50 border-white/5" : "bg-white border-zinc-200"
+                )}>
                 <option>Sports Coaching Inquiry</option>
                 <option>School Event Collaboration</option>
                 <option>Private Training</option>
@@ -888,7 +1172,10 @@ const Contact = () => {
               <textarea 
                 rows={5}
                 placeholder="How can I help you?"
-                className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 outline-none focus:border-emerald-500 transition-colors resize-none"
+                className={cn(
+                  "w-full border rounded-2xl px-6 py-4 outline-none focus:border-emerald-500 transition-colors resize-none",
+                  isDarkMode ? "bg-zinc-900/50 border-white/5" : "bg-white border-zinc-200"
+                )}
               />
             </div>
             <button className="md:col-span-2 py-4 bg-emerald-500 text-zinc-950 font-bold rounded-2xl hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/10">
@@ -901,11 +1188,14 @@ const Contact = () => {
   );
 };
 
-const Footer = () => {
+const Footer = ({ isDarkMode }: { isDarkMode: boolean }) => {
   return (
-    <footer className="py-12 border-t border-white/5 bg-zinc-950 px-6">
+    <footer className={cn(
+      "py-12 border-t px-6 transition-colors duration-500",
+      isDarkMode ? "bg-zinc-950 border-white/5" : "bg-white border-zinc-200"
+    )}>
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-        <div className="text-2xl font-heading font-bold tracking-tighter">
+        <div className={cn("text-2xl font-heading font-bold tracking-tighter", isDarkMode ? "text-white" : "text-zinc-900")}>
           MAHMOUD<span className="text-emerald-500">.</span>
         </div>
         
@@ -914,8 +1204,8 @@ const Footer = () => {
         </p>
 
         <div className="flex gap-8">
-          <a href="#" className="text-zinc-500 hover:text-white transition-colors text-sm uppercase tracking-widest font-bold">Privacy</a>
-          <a href="#" className="text-zinc-500 hover:text-white transition-colors text-sm uppercase tracking-widest font-bold">Terms</a>
+          <a href="#" className="text-zinc-500 hover:text-emerald-500 transition-colors text-sm uppercase tracking-widest font-bold">Privacy</a>
+          <a href="#" className="text-zinc-500 hover:text-emerald-500 transition-colors text-sm uppercase tracking-widest font-bold">Terms</a>
         </div>
       </div>
     </footer>
@@ -924,12 +1214,15 @@ const Footer = () => {
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
     damping: 30,
     restDelta: 0.001
   });
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   // Delay the disappearance of the loader for cinematic effect
   useEffect(() => {
@@ -940,7 +1233,10 @@ export default function App() {
   }, []);
 
   return (
-    <main className="bg-zinc-950 text-zinc-100 min-h-screen selection:bg-emerald-500 selection:text-zinc-950">
+    <main className={cn(
+      "min-h-screen selection:bg-emerald-500 selection:text-zinc-950 transition-colors duration-500",
+      isDarkMode ? "bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900"
+    )}>
       <AnimatePresence>
         {isLoading && (
           <IntroLoader key="loader" onComplete={() => setIsLoading(false)} />
@@ -955,18 +1251,18 @@ export default function App() {
         style={{ scaleX }}
       />
 
-      <Navbar />
+      <Navbar isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
       
       <div className={cn("transition-opacity duration-1000", isLoading ? "opacity-0" : "opacity-100")}>
-        <Hero />
-        <About />
-        <Philosophy />
-        <Skills />
-        <Activities />
-        <Gallery />
-        <Testimonials />
-        <Contact />
-        <Footer />
+        <Hero isDarkMode={isDarkMode} />
+        <About isDarkMode={isDarkMode} />
+        <Certificates isDarkMode={isDarkMode} />
+        <Philosophy isDarkMode={isDarkMode} />
+        <Skills isDarkMode={isDarkMode} />
+        <Activities isDarkMode={isDarkMode} />
+        <Testimonials isDarkMode={isDarkMode} />
+        <Contact isDarkMode={isDarkMode} />
+        <Footer isDarkMode={isDarkMode} />
       </div>
 
       {/* Custom Cursor / Accent Glow */}
